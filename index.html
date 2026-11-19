@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07181d">
+  <meta name="description" content="واجهة خاصة لجلسة تقييم أسئلة زين مع مدرس التاريخ">
+  <title>زين | جلسة مراجعة المدرّس</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">Z</span><div><strong>زين × المدرّس</strong><small>مختبر جودة أسئلة التاريخ</small></div></div>
+    <div class="top-actions">
+      <span class="save-indicator" id="saveIndicator">الحفظ على هذا المتصفح</span>
+      <button class="button quiet" id="summaryBtn" type="button">ملخص الجلسة</button>
+      <button class="button quiet" id="importBtn" type="button">استيراد أحكام</button>
+      <button class="button primary" id="exportBtn" type="button">تنزيل الأحكام JSON</button>
+      <input id="importFile" type="file" accept=".json,application/json" hidden>
+    </div>
+  </header>
+
+  <section class="intro shell">
+    <div class="eyebrow">جلسة تحكيم بشرية · دفعة أسترا الأولى</div>
+    <div class="intro-row"><div><h1>من «السؤال شكله كويس» إلى <em>سبب واضح للحكم</em></h1><p>١٩ سؤال اختيار من متعدد + حالة واحدة لم يُنشأ فيها سؤال. المفتاح وتفسيرات أسترا مخفية حتى تسجّل رأي المدرّس الأول.</p></div><div class="progress-ring" id="progressRing"><strong id="progressNum">٠/١٩</strong><span>سؤال روجع</span></div></div>
+    <div class="metric-row"><div><strong id="easyCount">٠</strong><span>سهل</span></div><div><strong id="mediumCount">٠</strong><span>متوسط</span></div><div><strong id="hardCount">٠</strong><span>صعب</span></div><div><strong id="indirectCount">٠</strong><span>غير مباشر</span></div><div><strong id="issueCount">٠</strong><span>يحتاج تعديل / استبعاد</span></div></div>
+  </section>
+
+  <div class="shell notice"><strong>سؤال مفتاحي للمدرّس:</strong> ما الذي يجعل السؤال صعبًا؟ وما الذي يجعله غير مباشر؟ سجّل المثالين من أسئلة الوزارة في «ملخص الجلسة». <span>الصعوبة واللا مباشرة قد يجتمعان، لذلك نسجلهما منفصلين.</span></div>
+
+  <main class="shell workspace">
+    <aside class="queue panel" aria-label="قائمة الأسئلة">
+      <div class="panel-heading"><div><span class="eyebrow">QUESTIONS / 20</span><h2>قائمة المراجعة</h2></div><span id="queueCount" class="count-pill">٢٠</span></div>
+      <label class="search"><span class="sr-only">ابحث في الأسئلة</span><input id="searchInput" placeholder="ابحث في السؤال أو رقم الدليل..." autocomplete="off"></label>
+      <div class="filter-row" id="filters"><button type="button" class="chip active" data-filter="all">الكل</button><button type="button" class="chip" data-filter="pending">لم يُراجع</button><button type="button" class="chip" data-filter="issue">يحتاج قرارًا</button><button type="button" class="chip" data-filter="done">مكتمل</button></div>
+      <div id="questionList" class="question-list"></div>
+    </aside>
+
+    <section class="question-panel panel" aria-labelledby="questionTitle">
+      <div class="question-meta"><span id="questionIndex" class="number-badge"></span><span id="evidenceId" class="mono"></span><span id="requestedLevel" class="requested"></span></div>
+      <p class="eyebrow">ما الذي طلبناه من الموديل؟</p><p id="questionAim" class="aim"></p>
+      <div class="divider"></div>
+      <div id="questionContent"></div>
+      <div class="question-footer"><button id="prevBtn" class="button quiet" type="button">السؤال السابق</button><button id="nextBtn" class="button quiet" type="button">السؤال التالي</button></div>
+    </section>
+
+    <section class="review-panel panel" aria-labelledby="reviewTitle">
+      <div class="panel-heading"><div><span class="eyebrow">TEACHER'S VERDICT</span><h2 id="reviewTitle">حكم المدرّس</h2></div><span class="autosave">حفظ تلقائي</span></div>
+      <p class="form-intro">ابدأ بالحكم السريع. افتح التشخيص التفصيلي فقط لو فيه مشكلة أو تفسير مهم للتدريب.</p>
+      <form id="reviewForm"></form>
+    </section>
+  </main>
+
+  <dialog id="summaryDialog" class="summary-dialog"><div class="dialog-head"><div><span class="eyebrow">MEETING NOTES</span><h2>ملخص الجلسة</h2></div><button id="closeSummary" class="button quiet" type="button">إغلاق</button></div><p>اطلب من المدرّس مثالًا رسميًا على سؤال صعب وآخر غير مباشر، وسبب تصنيفه لهما. دي أهم فجوة كشفتها الدفعة.</p><div id="meetingFields"></div><div id="summaryList" class="summary-list"></div><div class="dialog-foot"><button id="exportAgain" class="button primary" type="button">تنزيل الأحكام JSON</button></div></dialog>
+
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

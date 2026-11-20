@@ -94,6 +94,11 @@
       ${field('ليه المستوى ده؟',textarea('difficultyWhy',r.difficultyWhy,'إيه المعرفة أو الخطوة الذهنية المطلوبة من الطالب؟'))}
       ${field('هل المفتاح المقترح هو الإجابة الأدق الوحيدة؟',radio('keyVerdict',[['single','نعم، إجابة واحدة'],['alternative','في إجابة ثانية مقبولة'],['wrong','المفتاح خطأ'],['unknown','يحتاج توثيقًا']],r.keyVerdict))}
       ${field('هل طالب غير مذاكر يقدر يحله بالفهلوة؟',radio('leak',[['yes','نعم'],['no','لا'],['unsure','غير واضح']],r.leak))}
+      ${field('تقدير المدرّس: كم طالبًا قد يجيب صح؟',select('estimatedCorrect',[['over80','أكثر من ٨٠٪'],['50to80','من ٥٠٪ إلى ٨٠٪'],['under50','أقل من ٥٠٪'],['unsure','لا أستطيع التقدير']],r.estimatedCorrect),'توقع تقريبي من خبرة المدرّس مع طلاب المستوى المعتاد، وليس نسبة مقاسة من إجابات طلاب.')}
+      ${field('هل يشبه أسئلة الوزارة؟',radio('ministrySimilarity',[['yes','نعم'],['close','قريب'],['no','لا'],['unsure','غير واضح']],r.ministrySimilarity))}
+      ${field('لماذا يشبه أسئلة الوزارة أو يختلف عنها؟',textarea('ministryWhy',r.ministryWhy,'مثال: طول الجذع، طريقة السؤال، قوة البدائل، أو المهارة المطلوبة'))}
+      ${field('طول السؤال والبدائل',radio('lengthVerdict',[['short','قصير'],['appropriate','مناسب'],['long','طويل']],r.lengthVerdict),'انطباع أولي؛ سنضبط معيار الطول لاحقًا بعد تحليل تدريبات الوزارة.')}
+      ${field('ثقة المدرّس في حكمه',radio('confidence',[['confident','واثق'],['uncertain','متردد']],r.confidence),'لو متردد، وضّح سبب التردد في خانة الحكم أو المتابعة.')}
       ${field('سبب الحكم أو أهم تعديل مطلوب',textarea('decisionWhy',r.decisionWhy,'اشرح لماذا اعتمدته أو ما الذي منع اعتماده'))}`;
     const leakTypes=[['echo','صدى لفظي'],['outlier','فئة أو اتجاه مختلف'],['length','المفتاح الأطول / الأشمل'],['implausible','مشتتات مستبعدة'],['duplicate','بديلان بنفس المعنى'],['other','سبب آخر']];
     const deep=`<details class="review-details" ${r.status==='revise'||r.status==='reject'?'open':''}><summary>تشخيص البدائل والتعديل المقترح</summary>
@@ -102,6 +107,7 @@
       ${field('هل الدليل الذي وصل للموديل كافٍ وصحيح؟',radio('evidenceVerdict',[['yes','نعم'],['partial','جزئيًا'],['no','لا']],r.evidenceVerdict))}
       ${q.options.map(o=>{const d=(r.options||{})[o.code]||{};return `<div class="option-review"><b>البديل ${o.code}</b><small>${clean(o.text)}</small>${select(`option-${o.code}-rating`,[['strong','مشتت معقول'],['weak','ضعيف / مكشوف'],['second','إجابة ثانية ممكنة'],['key','الإجابة الصحيحة']],d.rating)}${textarea(`option-${o.code}-why`,d.why,'ليه الطالب يختاره؟ وليه يقبله أو يستبعده المدرّس؟')}</div>`}).join('')}
       ${field('الصياغة المعدّلة حرفيًا',textarea('editText',r.editText,'اكتب الجذع والبدائل بعد التصحيح، أو فكرة التعديل لو الوقت ضيق'))}
+      ${field('نسخة المدرّس المعدّلة كاملة — اختاروا ٢–٣ أسئلة فقط',textarea('teacherRewrite',r.teacherRewrite,'اكتب السؤال المعدّل، البدائل الأربعة، المفتاح، ولماذا صار أفضل'),'اتركها فارغة في بقية الأسئلة. هذه صياغة المدرّس وليست مجرد فكرة تعديل.')}
       ${field('جملة مفيدة من شرح المدرّس',textarea('teacherQuote',r.teacherQuote,'سجّل سببًا يمكن أن يتحول لقاعدة أو مثال تدريب'))}
       ${field('متابعة أو مصدر مطلوب',textarea('followUp',r.followUp,'صفحة منهج، سؤال وزارة مماثل، أو نقطة محتاجة تحقق'))}
     </details>`;
@@ -125,7 +131,15 @@
   byId('importBtn').addEventListener('click',()=>byId('importFile').click());
   byId('importFile').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{const data=JSON.parse(await f.text());if(data.format!=='zain-teacher-review-20'||!data.answers||typeof data.answers!=='object')throw Error('صيغة الملف مختلفة');if(!confirm('استيراد الأحكام سيستبدل ملاحظات هذا المتصفح. هل نزّلت نسخة منها؟'))return;state={answers:data.answers,meeting:data.meeting||{}};persist();render();alert('تم استيراد الأحكام بنجاح.')}catch(err){alert(`تعذّر الاستيراد: ${err.message}`)}e.target.value=''});
 
-  const meetingFields=[['hardExample','مثال رسمي على سؤال صعب ولماذا هو صعب'],['indirectExample','مثال رسمي على سؤال غير مباشر ولماذا هو غير مباشر'],['teacherRules','قاعدة أو معيار عام قاله المدرّس'],['meetingNext','ما الذي نعدّله في نظام توليد الأسئلة بعد الجلسة؟']];
+  const meetingFields=[
+    ['layerDefinitions','تعريف سهل / متوسط / صعب / غير مباشر، وعلامة كل طبقة'],
+    ['hardExample','مثالان رسميان من الوزارة على السؤال الصعب، مع المصدر وسبب التصنيف'],
+    ['indirectExample','مثالان رسميان من الوزارة على السؤال غير المباشر، مع المصدر وسبب التصنيف'],
+    ['layerMix','النسبة التقريبية لكل طبقة في الامتحان الفعلي؛ ولو غير معروف اكتب غير معروف'],
+    ['layerOrder','هل الطبقات موزعة بالتساوي أم بنمط أو ترتيب معين؟ وما ملاحظتك؟'],
+    ['teacherRules','قاعدة أو معيار عام قاله المدرّس'],
+    ['meetingNext','ما الذي نعدّله في نظام توليد الأسئلة بعد الجلسة؟']
+  ];
   function renderSummary(){byId('meetingFields').innerHTML=meetingFields.map(([name,title])=>field(title,textarea(`meeting-${name}`,state.meeting[name]||''))).join('');byId('summaryList').innerHTML=questions.map(q=>{const r=state.answers[q.id]||{};return `<div class="summary-item"><strong>س ${Number(q.id).toLocaleString('ar-EG')}</strong> · ${clean(labels[r.status]||'لم يُراجع')} · ${clean(labels[r.teacherLabel]||'بلا مستوى')}<br>${clean(r.decisionWhy||'')}</div>`}).join('')}
   byId('meetingFields').addEventListener('input',e=>{if(e.target.name?.startsWith('meeting-')){state.meeting[e.target.name.slice(8)]=e.target.value;persist()}});
   byId('summaryBtn').addEventListener('click',()=>{renderSummary();byId('summaryDialog').showModal()});

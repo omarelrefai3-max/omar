@@ -1,6 +1,6 @@
 (() => {
-  const questions = window.ZAIN_QUESTIONS || [];
-  const STORAGE_KEY = 'zain-teacher-review-20-v1';
+  const active=window.ZAIN_ACTIVE, en=active.english, questions=active.questions;
+  const STORAGE_KEY = active.storage;
   const clean = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const byId = id => document.getElementById(id);
   const labels = {accept:'صالح كما هو',revise:'يحتاج تعديلًا',reject:'استبعاد',easy:'سهل',medium:'متوسط',hard:'صعب',indirect:'غير مباشر'};
@@ -55,10 +55,10 @@
     }).join('') || '<p class="aim">لا توجد أسئلة مطابقة للبحث.</p>';
   }
   function renderCounters() {
-    const all = questions.slice(0,19).map(q => state.answers[q.id] || {});
+    const all = questions.filter(q=>q.stem).map(q => state.answers[q.id] || {});
     const done = all.filter(r => r.status).length;
-    byId('progressNum').textContent = `${done.toLocaleString('ar-EG')}/١٩`;
-    byId('progressRing').style.background = `conic-gradient(var(--mint) ${done/19*100}%, var(--panel) 0)`;
+    byId('progressNum').textContent = `${done.toLocaleString('ar-EG')}/${all.length.toLocaleString('ar-EG')}`;
+    byId('progressRing').style.background = `conic-gradient(var(--mint) ${done/all.length*100}%, var(--panel) 0)`;
     byId('easyCount').textContent = all.filter(r => r.teacherLabel==='easy').length.toLocaleString('ar-EG');
     byId('mediumCount').textContent = all.filter(r => r.teacherLabel==='medium').length.toLocaleString('ar-EG');
     byId('hardCount').textContent = all.filter(r => r.teacherLabel==='hard').length.toLocaleString('ar-EG');
@@ -68,10 +68,13 @@
   function renderQuestion() {
     const q=question();
     byId('questionIndex').textContent=`سؤال ${Number(q.id).toLocaleString('ar-EG')}`;
-    byId('evidenceId').textContent=q.evidenceId;
+    byId('evidenceId').textContent=q.evidenceId||'';
     byId('requestedLevel').textContent=`المطلوب: ${q.requested || 'غير محدد'}`;
     byId('questionAim').textContent=q.aim;
-    if (q.stem) {
+    if(en){
+      const mark=t=>clean(t).replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+      byId('questionContent').innerHTML='<h2 class="sr-only" id="questionTitle">نص السؤال</h2><div dir="ltr" lang="en">'+q.blocks.map(b=>'<div dir="auto" class="english-block '+clean(b.kind)+'">'+mark(b.text)+'</div>').join('')+'<div class="option-list">'+q.options.map(o=>'<div class="option"><b>'+o.code+'</b><span dir="auto">'+mark(o.text)+'</span></div>').join('')+'</div></div><button class="button quiet" id="revealBtn">'+(revealed?'إخفاء المفتاح':'إظهار المفتاح المقترح بعد الحكم')+'</button>'+(revealed?'<div class="answer-box"><strong>إجابة زين المقترحة</strong><p dir="auto">'+clean(q.answer).replaceAll('\n','<br>')+'</p><p dir="auto">'+clean(q.reason)+'</p></div>':'');
+    } else if (q.stem) {
       byId('questionContent').innerHTML=`<h2 id="questionTitle">${clean(q.stem)}</h2><div class="option-list">${q.options.map(o=>`<div class="option"><b>${o.code}</b><span>${clean(o.text)}</span></div>`).join('')}</div><div class="evidence"><h3>المقتطف الذي وصل إلى أسترا</h3><p>${clean(q.evidence)}</p></div><div class="answer-toggle"><button id="revealBtn" class="button quiet" type="button">${revealed?'إخفاء المفتاح والتفسير':'إظهار مفتاح أسترا وتفسيره بعد الحكم'}</button></div>${revealed?`<div class="answer-box"><strong>مفتاح أسترا المقترح: ${clean(q.key)} · تصنيفه: ${clean(q.astraLevel)}</strong><p>هذه اقتراحات الموديل، وليست تصحيحًا رسميًا.</p><ul>${q.options.map(o=>`<li><b>${o.code}</b> — ${clean(q.explanations[o.code] || 'لا يوجد تفسير')}</li>`).join('')}</ul></div>`:''}`;
     } else {
       byId('questionContent').innerHTML=`<h2 id="questionTitle">لم يُنشأ سؤال في المهمة ٢٠</h2><p class="aim">طلبنا تمييز النشاط العسكري عن وسائل مدنية، لكن المقتطف المرسل لم يذكر نشاطًا عسكريًا. هذه حالة لتقييم قرار الامتناع وتصميم التكليف، لا سؤالًا يُصنَّف سهلًا أو صعبًا.</p><div class="evidence"><h3>المقتطف الذي وصل إلى أسترا</h3><p>${clean(q.evidence)}</p></div><div class="answer-toggle"><button id="revealBtn" class="button quiet" type="button">${revealed?'إخفاء رد أسترا':'إظهار سبب امتناع أسترا'}</button></div>${revealed?`<div class="answer-box"><p>${clean(q.refusal)}</p></div>`:''}`;
@@ -83,6 +86,16 @@
   function renderForm() {
     const q=question(), r=record(q.id);
     const common=field('الحكم النهائي على الحالة',radio('status',[['accept',q.stem?'صالح كما هو':'الامتناع مبرر'],['revise','يحتاج تعديلًا'],['reject','استبعاد']],r.status),'لا نعتمد جودة السؤال قبل التأكد من المفتاح والدليل.');
+    if(en){
+      byId('reviewForm').innerHTML=field('رأيك في السؤال كما هو؟ وليه؟',textarea('decisionWhy',r.decisionWhy,'اكتب انطباعك الأول بكلامك'))+common
+      +field('المستوى في رأيك',select('teacherLabel',[['easy','سهل'],['medium','متوسط'],['hard','صعب']],r.teacherLabel))
+      +'<details class="review-details"><summary>متابعة اختيارية بعد الانطباع الأول</summary>'
+      +field('هل يشبه أسئلة التقييمات؟',radio('ministrySimilarity',[['yes','نعم'],['close','قريب'],['no','لا']],r.ministrySimilarity))
+      +field('هل يقيس المهارة المطلوبة؟ وهل تُقبل إجابة أخرى؟',textarea('keyNotes',r.keyNotes))
+      +field('حجم القراءة',radio('lengthVerdict',[['short','قصير'],['appropriate','مناسب'],['long','طويل']],r.lengthVerdict))
+      +field('لو ناقشت حجم القراءة، إيه الجزء المقصود؟',textarea('lengthNotes',r.lengthNotes))
+      +field('التعديل المقترح إن وُجد',textarea('editText',r.editText))+'</details>';return;
+    }
     if (!q.stem) {
       byId('reviewForm').innerHTML=common+field('هل كان الدليل كافيًا لبناء السؤال المطلوب؟',radio('sourceEnough',[['yes','نعم'],['no','لا'],['unsure','غير واضح']],r.sourceEnough))+field('ما الذي ينبغي تغييره في التكليف أو الدليل؟',textarea('editText',r.editText,'اكتب الدليل أو المهمة البديلة المطلوبة'))+field('نصّ توضيح المدرّس',textarea('teacherQuote',r.teacherQuote,'سجّل التفسير كما قاله'));
       return;
@@ -126,12 +139,12 @@
   byId('reviewForm').addEventListener('input',formChanged);
   byId('reviewForm').addEventListener('change',formChanged);
 
-  function exportData(){const payload={format:'zain-teacher-review-20',version:1,exportedAt:new Date().toISOString(),source:'astra-replication-20x10-01',answers:state.answers,meeting:state.meeting};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`zain-teacher-review-${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+  function exportData(){const payload={format:'zain-teacher-review-20',version:1,exportedAt:new Date().toISOString(),source:active.source,subject:active.subject,batch:active.id,answers:state.answers,meeting:state.meeting};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`zain-teacher-review-${active.subject}-${active.id}-${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   byId('exportBtn').addEventListener('click',exportData);byId('exportAgain').addEventListener('click',exportData);
   byId('importBtn').addEventListener('click',()=>byId('importFile').click());
-  byId('importFile').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{const data=JSON.parse(await f.text());if(data.format!=='zain-teacher-review-20'||!data.answers||typeof data.answers!=='object')throw Error('صيغة الملف مختلفة');if(!confirm('استيراد الأحكام سيستبدل ملاحظات هذا المتصفح. هل نزّلت نسخة منها؟'))return;state={answers:data.answers,meeting:data.meeting||{}};persist();render();alert('تم استيراد الأحكام بنجاح.')}catch(err){alert(`تعذّر الاستيراد: ${err.message}`)}e.target.value=''});
+  byId('importFile').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{const data=JSON.parse(await f.text());if(data.format!=='zain-teacher-review-20'||!data.answers||typeof data.answers!=='object')throw Error('صيغة الملف مختلفة');if((data.source||(!data.subject?'astra-replication-20x10-01':''))!==active.source||(data.subject&&data.subject!==active.subject)||(data.batch&&data.batch!==active.id))throw Error('هذا الملف يخص مادة أو دفعة أخرى؛ اخترها من القائمة أولًا');if(!confirm('استيراد الأحكام سيستبدل ملاحظات هذه الدفعة على هذا المتصفح. هل نزّلت نسخة منها؟'))return;state={answers:data.answers,meeting:data.meeting||{}};persist();render();alert('تم استيراد الأحكام بنجاح.')}catch(err){alert(`تعذّر الاستيراد: ${err.message}`)}e.target.value=''});
 
-  const meetingFields=[
+  const meetingFields=en?[['teacherRules','أهم ملاحظات المدرّس على الدفعة'],['meetingNext','التعديلات أو الأمثلة المقترحة للجولة التالية']]:[
     ['layerDefinitions','تعريف سهل / متوسط / صعب / غير مباشر، وعلامة كل طبقة'],
     ['hardExample','مثالان رسميان من الوزارة على السؤال الصعب، مع المصدر وسبب التصنيف'],
     ['indirectExample','مثالان رسميان من الوزارة على السؤال غير المباشر، مع المصدر وسبب التصنيف'],
